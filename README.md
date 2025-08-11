@@ -1,0 +1,186 @@
+# AWS Engineers Community
+
+AWSエンジニア向け多言語対応コミュニティサイト
+
+## 🌟 概要
+
+言語の壁を意識することなく、世界中のAWSエンジニアがフォーラム形式でやり取りできるWebシステムです。ユーザーが投稿した内容は自動的に各ユーザーの設定言語に翻訳されて表示され、画像やURLプレビューなどのリッチコンテンツにも対応します。
+
+## 🏗️ アーキテクチャ
+
+- **フロントエンド**: React/Next.js + TypeScript + Tailwind CSS
+- **バックエンド**: Node.js/Express + TypeScript
+- **データベース**: Amazon DynamoDB
+- **認証**: Amazon Cognito
+- **翻訳**: Amazon Translate
+- **ファイルストレージ**: Amazon S3
+- **インフラ**: AWS ECS Fargate
+- **シークレット管理**: AWS Secrets Manager
+
+## 🚀 開発環境セットアップ
+
+### 前提条件
+
+- Node.js 18以上
+- Docker Desktop
+- AWS CLI
+- Git
+
+### 1. リポジトリのクローン
+
+```bash
+git clone https://github.com/hatahata021/project-IHK.git
+cd project-IHK
+```
+
+### 2. 環境変数の設定
+
+```bash
+# 環境変数ファイルをコピー
+cp .env.example .env
+
+# .envファイルを編集して実際の値を設定
+```
+
+### 3. 依存関係のインストール
+
+```bash
+# フロントエンド
+cd frontend
+npm install
+
+# バックエンド
+cd ../backend
+npm install
+```
+
+### 4. 開発サーバーの起動
+
+```bash
+# バックエンド（ターミナル1）
+cd backend
+npm run dev
+
+# フロントエンド（ターミナル2）
+cd frontend
+npm run dev
+```
+
+## 📋 開発ルール
+
+### ブランチ戦略
+
+```bash
+# 新機能開発
+git checkout -b feature/task-X.X-description
+
+# バグ修正
+git checkout -b bugfix/issue-description
+
+# ホットフィックス
+git checkout -b hotfix/critical-fix
+```
+
+### コミットメッセージ
+
+```bash
+# タスク実装
+[X.X] タスク名の実装
+
+# バグ修正
+[BUGFIX] 修正内容
+
+# ドキュメント更新
+[DOCS] ドキュメント更新内容
+```
+
+### コードレビュー
+
+- 全てのPRに最低1人のレビューが必要
+- セキュリティ、パフォーマンス、可読性を重視
+- 建設的なフィードバックを心がける
+
+## 🧪 テスト
+
+### ユニットテスト
+
+```bash
+# フロントエンド
+cd frontend
+npm run test
+
+# バックエンド
+cd backend
+npm run test
+```
+
+### カバレッジ
+
+```bash
+# フロントエンド
+cd frontend
+npm run test:coverage
+
+# バックエンド
+cd backend
+npm run test:coverage
+```
+
+## 🔒 セキュリティ
+
+### コミット前チェック
+
+```bash
+# セキュリティチェック実行
+./scripts/security-check.sh
+```
+
+### 秘匿情報管理
+
+- AWS Secrets Manager: 機密情報（パスワード、APIキー等）
+- AWS Parameter Store: 非機密設定値
+- 環境変数: ローカル開発用設定
+
+## 👥 チーム構成
+
+### メンバー1: インフラ・バックエンド基盤担当
+- プロジェクト構造とGitHub設定
+- Docker開発環境構築
+- AWS基盤インフラ構築
+- 認証システム実装
+
+### メンバー2: 認証・翻訳システム担当
+- 翻訳サービス基盤実装
+- ログ・監視機能実装
+- フォーラム基盤機能実装
+
+### メンバー3: フロントエンド・UI担当
+- URLプレビュー機能実装
+- AWS特化機能実装
+- フロントエンドUI実装
+
+## 📚 ドキュメント
+
+- [要件定義書](.kiro/specs/multilingual-aws-community/requirements.md)
+- [設計書](.kiro/specs/multilingual-aws-community/design.md)
+- [実装計画](.kiro/specs/multilingual-aws-community/tasks.md)
+- [チーム開発ルール](.kiro/steering/team-development-rules.md)
+- [セキュリティルール](.kiro/steering/security-rules.md)
+
+## 🤝 コントリビューション
+
+1. Issueを作成して議論
+2. フィーチャーブランチを作成
+3. 変更を実装
+4. テストを追加
+5. プルリクエストを作成
+6. コードレビューを受ける
+7. マージ
+
+## 📄 ライセンス
+
+このプロジェクトはMITライセンスの下で公開されています。
+
+## 🆘 サポート
+
+質問や問題がある場合は、Issueを作成するかチームメンバーに相談してください。
