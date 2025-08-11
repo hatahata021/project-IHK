@@ -17,7 +17,7 @@
   - 開発用環境変数管理とシークレット管理を設定
   - _要件: 6.4, 6.5_
 
-- [ ] 1.3 AWS基盤インフラ構築
+- [-] 1.3 AWS基盤インフラ構築
   - DynamoDBテーブル作成（Users, Categories, Posts, Replies, TranslationCache, Reactions）
   - S3バケット作成（画像ストレージ用）
   - Amazon Cognito設定（ユーザープール、アプリクライアント）
