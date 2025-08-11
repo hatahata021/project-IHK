@@ -56,7 +56,22 @@ npm install
 
 ### 4. 開発サーバーの起動
 
+#### Docker使用（推奨）
+
 ```bash
+# 開発環境の自動セットアップ
+./scripts/dev-setup.sh
+
+# または手動でDocker Composeを使用
+docker-compose up -d
+```
+
+#### ローカル環境での起動
+
+```bash
+# 依存関係のインストール
+./scripts/dev-utils.sh install
+
 # バックエンド（ターミナル1）
 cd backend
 npm run dev
@@ -64,6 +79,23 @@ npm run dev
 # フロントエンド（ターミナル2）
 cd frontend
 npm run dev
+```
+
+### 5. 開発用ツール
+
+```bash
+# 開発環境管理
+./scripts/dev-utils.sh start    # 開発環境起動
+./scripts/dev-utils.sh stop     # 開発環境停止
+./scripts/dev-utils.sh status   # 状況確認
+./scripts/dev-utils.sh logs     # ログ確認
+
+# 利用可能なサービス
+# - フロントエンド: http://localhost:3000
+# - バックエンドAPI: http://localhost:3001
+# - DynamoDB Local: http://localhost:8000
+# - DynamoDB Admin: http://localhost:8001
+# - Redis Commander: http://localhost:8081
 ```
 
 ## 📋 開発ルール

@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # フロントエンド（本番用）
+  frontend:
+    build:
+      context: ./frontend
+      target: production
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${API_URL}
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # バックエンド（本番用）
+  backend:
+    build:
+      context: ./backend
+      target: production
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - AWS_REGION=${AWS_REGION}
+    restart: unless-stopped
+    networks:
+      - app-network
+
+# ネットワーク定義
+networks:
+  app-network:
+    driver: bridge
