@@ -1,0 +1,40 @@
+{
+  "mcpServers": {
+    "aws-docs": {
+      "command": "uvx",
+      "args": ["awslabs.aws-documentation-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      },
+      "disabled": false,
+      "autoApprove": ["search_aws_docs", "get_aws_service_info"]
+    },
+    "github": {
+      "command": "uvx", 
+      "args": ["github-mcp-server@latest"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": ""
+      },
+      "disabled": false,
+      "autoApprove": ["search_repositories", "get_repository_info"]
+    },
+    "web-search": {
+      "command": "uvx",
+      "args": ["web-search-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      },
+      "disabled": false,
+      "autoApprove": ["web_search"]
+    },
+    "docker": {
+      "command": "uvx",
+      "args": ["docker-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      },
+      "disabled": false,
+      "autoApprove": ["list_containers", "get_container_info"]
+    }
+  }
+}
