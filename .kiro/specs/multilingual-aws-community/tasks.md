@@ -24,30 +24,44 @@
   - ECS Fargate クラスター、タスク定義、サービス設定
   - _要件: 1.1, 1.2, 1.3, 4.1, 4.6_
 
+- [ ] 1.4 AWS Secrets Manager・Parameter Store設定
+  - AWS Secrets Managerでシークレット管理基盤を構築
+  - データベース認証情報、APIキー、JWT署名キーをSecrets Managerに保存
+  - AWS Systems Manager Parameter Storeで非機密設定値を管理
+  - シークレット自動ローテーション設定を実装
+  - _要件: 9.3_
+
 - [ ] 2. 認証システム実装
   - Amazon Cognitoを使用したユーザー認証システムを実装する
   - SNSログイン（X、Instagram、LinkedIn）とメールアドレス認証に対応する
   - _要件: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [ ] 2.1 バックエンド認証API実装
-  - Node.js/ExpressでCognito連携の認証APIを実装
-  - JWT トークン検証ミドルウェアを作成
-  - ユーザー登録、ログイン、プロフィール取得・更新APIを実装
-  - _要件: 1.1, 1.2, 1.3, 1.4, 9.1_
+- [ ] 2.1 シークレット管理サービス実装
+  - AWS Secrets Manager連携のSecretsServiceクラスを実装
+  - AWS Systems Manager Parameter Store連携のParameterServiceクラスを実装
+  - シークレット取得のキャッシュ機能とエラーハンドリングを実装
+  - 環境別シークレット管理（開発・本番）を実装
+  - _要件: 9.3_
 
-- [ ] 2.2 SNSプロバイダー連携実装
-  - Amazon CognitoでX（Twitter）、Instagram、LinkedInのOAuth設定
+- [ ] 2.2 バックエンド認証API実装
+  - Node.js/ExpressでCognito連携の認証APIを実装
+  - JWT トークン検証ミドルウェアを作成（Secrets Managerから署名キー取得）
+  - ユーザー登録、ログイン、プロフィール取得・更新APIを実装
+  - _要件: 1.1, 1.2, 1.3, 1.4, 9.1, 9.3_
+
+- [ ] 2.3 SNSプロバイダー連携実装
+  - Amazon CognitoでX（Twitter）、Instagram、LinkedInのOAuth設定（認証情報はSecrets Manager管理）
   - SNSログインフローのバックエンド処理を実装
   - SNSアカウント情報とローカルユーザー情報の連携処理を実装
-  - _要件: 1.1, 1.3_
+  - _要件: 1.1, 1.3, 9.3_
 
-- [ ] 2.3 フロントエンド認証UI実装
+- [ ] 2.4 フロントエンド認証UI実装
   - React/Next.jsでログイン・サインアップフォームを実装
   - SNSログインボタンとOAuthフローを実装
   - 認証状態管理（Context API または Zustand）を実装
   - _要件: 1.1, 1.2, 1.3, 1.4_
 
-- [ ] 2.4 メールアドレス認証実装
+- [ ] 2.5 メールアドレス認証実装
   - Cognitoのメール認証フローを実装
   - 認証メール送信とメール内リンクでの認証確認を実装
   - 未認証ユーザーのアクセス制限を実装

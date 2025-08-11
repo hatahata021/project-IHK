@@ -5,6 +5,20 @@
 
 echo "🔍 セキュリティチェックを開始します..."
 
+# git-secretsの動作確認
+echo "📋 git-secretsの動作確認中..."
+if ! command -v git-secrets &> /dev/null; then
+    echo "❌ git-secretsがインストールされていません"
+    echo "📖 インストール方法: docs/SETUP.md を参照してください"
+    exit 1
+fi
+
+# git-secretsでスキャン
+if ! git secrets --scan; then
+    echo "❌ git-secretsで秘匿情報が検出されました"
+    exit 1
+fi
+
 # 危険なパターンを検索
 echo "📋 秘匿情報パターンをチェック中..."
 

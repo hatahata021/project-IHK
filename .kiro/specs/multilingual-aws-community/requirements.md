@@ -116,6 +116,13 @@ AWSエンジニアを対象とした多言語対応コミュニティサイト�
 - WHEN データ通信を行う時 THEN システムはHTTPS/TLS暗号化を使用する
 - WHEN ファイルアップロードを受け付ける時 THEN システムはマルウェアスキャンを実行する
 
+**要件9.3: シークレット管理**
+- WHEN システムが機密情報を保存する時 THEN システムはAWS Secrets Managerを使用する
+- WHEN データベース認証情報を管理する時 THEN システムはSecrets Managerで暗号化して保存する
+- WHEN APIキーや外部サービス認証情報を使用する時 THEN システムはSecrets Managerから動的に取得する
+- WHEN 機密情報をローテーションする時 THEN システムはSecrets Managerの自動ローテーション機能を使用する
+- IF 非機密設定値を管理する場合 THEN システムはAWS Systems Manager Parameter Storeを使用する
+
 ### 拡張性要件
 
 **要件10.1: スケーラビリティ**
