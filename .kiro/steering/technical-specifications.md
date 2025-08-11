@@ -46,17 +46,78 @@ inclusion: always
 - Docker Desktop
 - AWS CLI
 - Git
+- **git-secrets（必須）**: 秘匿情報の誤コミット防止
 
 ### 環境変数
 ```bash
-# 開発環境用
+# 基本設定（Parameter Store管理）
 NODE_ENV=development
 AWS_REGION=ap-northeast-1
-COGNITO_USER_POOL_ID=
-COGNITO_CLIENT_ID=
+
+# AWS認証（IAMロール使用推奨）
+AWS_ACCESS_KEY_ID=[YOUR_AWS_ACCESS_KEY]
+AWS_SECRET_ACCESS_KEY=[YOUR_AWS_SECRET_KEY]
+
+# 非機密設定（Parameter Store管理）
 DYNAMODB_ENDPOINT=http://localhost:8000
-S3_BUCKET_NAME=
+S3_BUCKET_NAME=[YOUR_BUCKET_NAME]
 TRANSLATE_SERVICE_REGION=ap-northeast-1
+
+# 開発用設定
+DEBUG=true
+LOG_LEVEL=debug
+```
+
+### AWS Secrets Manager管理対象
+以下の機密情報はSecrets Managerで管理：
+
+```typescript
+// データベース認証情報
+interface DatabaseSecret {
+  username: string;
+  password: string;
+  host: string;
+  port: number;
+  dbname: string;
+}
+
+// Cognito設定
+interface CognitoSecret {
+  userPoolId: string;
+  clientId: string;
+  clientSecret: string;
+}
+
+// 外部API認証情報
+interface ExternalAPISecrets {
+  githubToken: string;
+  twitterApiKey: string;
+  twitterApiSecret: string;
+  linkedinClientId: string;
+  linkedinClientSecret: string;
+}
+
+// JWT署名キー
+interface JWTSecret {
+  signingKey: string;
+  refreshKey: string;
+}
+
+// メール設定
+interface EmailSecret {
+  smtpHost: string;
+  smtpUser: string;
+  smtpPassword: string;
+}
+```
+
+### Parameter Store管理対象
+```
+/multilingual-community/prod/app/region
+/multilingual-community/prod/app/log-level
+/multilingual-community/prod/dynamodb/table-prefix
+/multilingual-community/prod/s3/bucket-name
+/multilingual-community/prod/translate/source-languages
 ```
 
 ## コーディング標準

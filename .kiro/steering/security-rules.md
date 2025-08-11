@@ -97,13 +97,51 @@ Thumbs.db
 *.backup
 ```
 
-### git-secretsの使用
+### git-secretsの使用（必須）
+**🚨 重要: チーム全員が必ずインストールしてください**
+
+#### インストール手順
 ```bash
-# git-secretsのインストール（既に設定済み）
-# パターンが自動検出される：
-# - AWS Access Key: AKIA[0-9A-Z]{16}
-# - AWS Secret Key: [A-Za-z0-9/+=]{40}
-# - AWS Account ID: [0-9]{4}-?[0-9]{4}-?[0-9]{4}
+# macOS (Homebrew使用)
+brew install git-secrets
+
+# Linux (Ubuntu/Debian)
+sudo apt-get install git-secrets
+
+# 手動インストール
+git clone https://github.com/awslabs/git-secrets.git
+cd git-secrets
+make install
+```
+
+#### 初期設定（必須）
+```bash
+# リポジトリでの設定
+cd /path/to/project-IHK
+git secrets --install
+git secrets --register-aws
+
+# グローバル設定（推奨）
+git secrets --install ~/.git-templates/git-secrets
+git config --global init.templateDir ~/.git-templates/git-secrets
+git secrets --register-aws --global
+```
+
+#### 自動検出パターン
+以下のパターンが自動検出されます：
+- AWS Access Key: `AKIA[0-9A-Z]{16}`
+- AWS Secret Key: `[A-Za-z0-9/+=]{40}`
+- AWS Account ID: `[0-9]{4}-?[0-9]{4}-?[0-9]{4}`
+
+#### 動作確認
+```bash
+# テスト（このコマンドでエラーが出ればOK）
+echo "AKIAIOSFODNN7EXAMPLE" > test-file.txt
+git add test-file.txt
+git commit -m "test"
+# → エラーが出ることを確認
+rm test-file.txt
+git reset HEAD~1
 ```
 
 ## 📋 コミット前チェックリスト
@@ -150,15 +188,23 @@ git reset --soft HEAD~1
 
 ## 👥 チーム責任
 
+### 各メンバーの必須作業
+1. **git-secretsインストール**: プロジェクト参加前に必ずインストール
+2. **初期設定完了**: リポジトリクローン後に設定を実行
+3. **動作確認**: テストコマンドで正常動作を確認
+
 ### 各メンバーの責任
 - **コミット前**: 必ず内容を確認
 - **レビュー時**: 秘匿情報がないかチェック
 - **発見時**: 即座にチームに報告
+- **git-secrets**: 定期的に最新版に更新
 
 ### 定期的な確認
+- **毎回**: git-secretsが正常動作していることを確認
 - 週1回: .gitignore の見直し
 - 月1回: リポジトリ全体の秘匿情報スキャン
 - 四半期: セキュリティルールの見直し
+- 四半期: git-secretsの最新版確認・更新
 
 ## 📚 参考資料
 
@@ -171,3 +217,58 @@ git reset --soft HEAD~1
 - **git-secrets**: 自動検出
 - **truffleHog**: 履歴スキャン
 - **detect-secrets**: 事前検出
+
+## 🔐 AWS Secrets Manager使用方針
+
+### 必須使用ケース
+以下の情報は**必ずAWS Secrets Manager**で管理してください：
+
+#### データベース認証情報
+```typescript
+// ❌ 危険: 環境変数での管理
+const dbConfig = {
+  host: process.env.DB_HOST,
+  username: process.env.DB_USER,
+  password: process.env.DB_PASSWORD
+};
+
+// ✅ 安全: Secrets Manager使用
+const secretsService = new SecretsService();
+const dbConfig = await secretsService.getSecret<DatabaseSecret>('prod/multilingual-community/database');
+```
+
+#### 外部API認証情報
+```typescript
+// ❌ 危険: ハードコーディング
+const githubToken = "ghp_1234567890abcdef";
+
+// ✅ 安全: Secrets Manager使用
+const githubSecret = await secretsService.getSecret<APISecret>('prod/multilingual-community/github-api');
+const githubToken = githubSecret.apiKey;
+```
+
+#### JWT署名キー
+```typescript
+// ❌ 危険: 固定値
+const jwtSecret = "my-super-secret-key";
+
+// ✅ 安全: Secrets Manager使用
+const jwtKeys = await secretsService.getSecret<JWTSecret>('prod/multilingual-community/jwt-keys');
+const token = jwt.sign(payload, jwtKeys.signingKey);
+```
+
+### AWS Systems Manager Parameter Store使用ケース
+非機密設定値は**Parameter Store**を使用：
+
+```typescript
+// 設定値の取得例
+const parameterService = new ParameterService();
+const region = await parameterService.getParameter('/multilingual-community/prod/app/region');
+const logLevel = await parameterService.getParameter('/multilingual-community/prod/app/log-level');
+```
+
+### 実装時の注意事項
+1. **キャッシュ機能**: 頻繁なAPI呼び出しを避けるため5分間キャッシュ
+2. **エラーハンドリング**: Secrets Manager接続失敗時のフォールバック処理
+3. **ローテーション対応**: 自動ローテーション機能を活用
+4. **環境分離**: 開発・本番環境でシークレットを分離管理

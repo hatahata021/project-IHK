@@ -35,6 +35,11 @@ graph TB
         J[ElastiCache Redis]
     end
     
+    subgraph "Security & Configuration"
+        N[AWS Secrets Manager]
+        O[AWS Systems Manager Parameter Store]
+    end
+    
     subgraph "External Services"
         K[Amazon Translate]
         L[CloudWatch]
@@ -49,6 +54,8 @@ graph TB
     E --> I
     E --> J
     E --> K
+    E --> N
+    E --> O
     A --> F
     F --> G
     E --> M
@@ -517,6 +524,136 @@ interface URLPreview {
 }
 ```
 
+## シークレット管理設計
+
+### AWS Secrets Manager構成
+
+**1. シークレット分類**
+```typescript
+// データベース認証情報
+interface DatabaseSecret {
+  username: string;
+  password: string;
+  host: string;
+  port: number;
+  dbname: string;
+}
+
+// 外部API認証情報
+interface APISecret {
+  apiKey: string;
+  secretKey?: string;
+  endpoint?: string;
+}
+
+// JWT署名キー
+interface JWTSecret {
+  signingKey: string;
+  refreshKey: string;
+}
+```
+
+**2. シークレット命名規則**
+```
+環境/サービス/用途
+例:
+- prod/multilingual-community/database
+- prod/multilingual-community/jwt-keys
+- prod/multilingual-community/github-api
+- prod/multilingual-community/translate-api
+```
+
+**3. シークレット取得サービス**
+```typescript
+class SecretsService {
+  private client: SecretsManagerClient;
+  private cache: Map<string, { value: any; expiry: number }>;
+
+  async getSecret<T>(secretName: string): Promise<T> {
+    // キャッシュチェック
+    const cached = this.cache.get(secretName);
+    if (cached && cached.expiry > Date.now()) {
+      return cached.value;
+    }
+
+    try {
+      const command = new GetSecretValueCommand({
+        SecretId: secretName,
+      });
+      const response = await this.client.send(command);
+      const secret = JSON.parse(response.SecretString!);
+      
+      // 5分間キャッシュ
+      this.cache.set(secretName, {
+        value: secret,
+        expiry: Date.now() + 5 * 60 * 1000
+      });
+      
+      return secret;
+    } catch (error) {
+      // フォールバック処理
+      throw new SecretsManagerError(`Failed to retrieve secret: ${secretName}`);
+    }
+  }
+}
+```
+
+**4. 自動ローテーション設定**
+```json
+{
+  "RotationRules": {
+    "AutomaticallyAfterDays": 30
+  },
+  "RotationLambdaARN": "arn:aws:lambda:region:account:function:SecretsManagerRotation"
+}
+```
+
+### AWS Systems Manager Parameter Store構成
+
+**1. 非機密設定値管理**
+```
+/multilingual-community/prod/app/region
+/multilingual-community/prod/app/log-level
+/multilingual-community/prod/dynamodb/table-prefix
+/multilingual-community/prod/s3/bucket-name
+/multilingual-community/prod/translate/source-languages
+```
+
+**2. パラメータ取得サービス**
+```typescript
+class ParameterService {
+  private client: SSMClient;
+  
+  async getParameter(name: string): Promise<string> {
+    const command = new GetParameterCommand({
+      Name: name,
+      WithDecryption: false // 非機密情報のため
+    });
+    
+    const response = await this.client.send(command);
+    return response.Parameter?.Value || '';
+  }
+  
+  async getParameters(names: string[]): Promise<Record<string, string>> {
+    const command = new GetParametersCommand({
+      Names: names,
+      WithDecryption: false
+    });
+    
+    const response = await this.client.send(command);
+    const result: Record<string, string> = {};
+    
+    response.Parameters?.forEach(param => {
+      if (param.Name && param.Value) {
+        result[param.Name] = param.Value;
+      }
+    });
+    
+    return result;
+  }
+}
+```
+
 ## エラーハンドリング
 
 ### エラー分類と対応方針
@@ -536,6 +673,11 @@ interface URLPreview {
 **4. 外部サービスエラー**
 - 翻訳サービス障害: 元言語で表示 + 翻訳不可通知
 - 画像アップロード失敗: リトライ機能 + 代替手段提示
+
+**5. シークレット管理エラー**
+- Secrets Manager接続失敗: フォールバック機能 + アラート送信
+- シークレット取得失敗: リトライ機能 + 管理者通知
+- シークレット復号化失敗: セキュリティログ記録 + サービス停止
 
 ### エラーレスポンス形式
 
