@@ -2,6 +2,7 @@
   "name": "multilingual-aws-community-backend",
   "version": "0.1.0",
   "private": true,
+  "description": "AWSエンジニア向け多言語対応コミュニティサイトのバックエンドAPI",
   "scripts": {
     "dev": "nodemon src/index.ts",
     "build": "tsc",
@@ -15,6 +16,17 @@
     "docker:run": "docker run -p 3001:3001 multilingual-community-backend",
     "setup:db": "ts-node scripts/setup-database.ts"
   },
+  "keywords": [
+    "aws",
+    "community",
+    "multilingual",
+    "forum",
+    "nodejs",
+    "express",
+    "typescript"
+  ],
+  "author": "AWS Community Team",
+  "license": "MIT",
   "dependencies": {
     "express": "^4.18.0",
     "typescript": "^5.0.0",
@@ -32,7 +44,15 @@
     "@aws-sdk/client-s3": "^3.400.0",
     "@aws-sdk/client-translate": "^3.400.0",
     "jsonwebtoken": "^9.0.0",
-    "@types/jsonwebtoken": "^9.0.0"
+    "@types/jsonwebtoken": "^9.0.0",
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "express-rate-limit": "^7.1.5",
+    "bcryptjs": "^2.4.3",
+    "joi": "^17.11.0",
+    "morgan": "^1.10.0",
+    "compression": "^1.7.4",
+    "express-validator": "^7.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.0",
@@ -44,6 +64,30 @@
     "jest": "^29.0.0",
     "@types/jest": "^29.0.0",
     "supertest": "^6.3.0",
-    "@types/supertest": "^2.0.0"
+    "@types/supertest": "^2.0.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.29.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverageFrom": [
+      "src/**/*.ts",
+      "!src/**/*.test.ts",
+      "!src/index.ts"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.ts",
+      "**/?(*.)+(spec|test).ts"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }
