@@ -1,54 +1,46 @@
-# マルチステージビルドでイメージサイズを最適化
+# Node.js 18 LTS版を使用
 FROM node:18-alpine AS base
 
-# 作業ディレクトリを設定
+# 依存関係インストール用ステージ
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # パッケージファイルをコピー
 COPY package*.json ./
-
-# 開発段階
-FROM base AS development
-# 開発用依存関係をインストール
 RUN npm ci
-# ソースコードをコピー
-COPY . .
-# 開発サーバーを起動
-CMD ["npm", "run", "dev"]
 
-# ビルド段階
-FROM base AS build
-# 依存関係をインストール
-RUN npm ci
-# ソースコードをコピー
+# ビルド用ステージ
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
 # Next.jsアプリケーションをビルド
 RUN npm run build
 
-# 本番段階
-FROM node:18-alpine AS production
-# セキュリティのため非rootユーザーを作成
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
-
-# 作業ディレクトリを設定
+# 本番環境用ステージ
+FROM base AS runner
 WORKDIR /app
 
-# 本番用依存関係をコピー
-COPY --from=build /app/public ./public
-COPY --from=build /app/.next/standalone ./
-COPY --from=build /app/.next/static ./.next/static
+ENV NODE_ENV production
 
-# ファイルの所有者を変更
-RUN chown -R nextjs:nodejs /app
+# 本番環境用のユーザーを作成
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# 必要なファイルをコピー
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
 USER nextjs
 
-# ポートを公開
+# ポート3000を公開
 EXPOSE 3000
 
-# ヘルスチェック
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3000/api/health || exit 1
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
 
 # アプリケーションを起動
 CMD ["node", "server.js"]

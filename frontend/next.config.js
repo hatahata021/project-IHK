@@ -3,6 +3,9 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   
+  // Docker用のstandalone出力設定
+  output: 'standalone',
+  
   // 環境変数の設定
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY,

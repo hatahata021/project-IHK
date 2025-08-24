@@ -9,7 +9,9 @@
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "docker:build": "docker build -t multilingual-community-frontend .",
+    "docker:run": "docker run -p 3000:3000 multilingual-community-frontend"
   },
   "dependencies": {
     "next": "14.0.0",
