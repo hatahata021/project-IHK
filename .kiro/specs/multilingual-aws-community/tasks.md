@@ -24,7 +24,7 @@
   - ECS Fargate クラスター、タスク定義、サービス設定
   - _要件: 1.1, 1.2, 1.3, 4.1, 4.6_
 
-- [ ] 1.4 AWS Secrets Manager・Parameter Store設定
+- [x] 1.4 AWS Secrets Manager・Parameter Store設定
   - AWS Secrets Managerでシークレット管理基盤を構築
   - データベース認証情報、APIキー、JWT署名キーをSecrets Managerに保存
   - AWS Systems Manager Parameter Storeで非機密設定値を管理
