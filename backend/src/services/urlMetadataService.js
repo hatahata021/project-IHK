@@ -1,30 +1,47 @@
 /**
  * URLメタデータ取得サービス
  * Open Graphプロトコルに対応したメタデータ抽出機能を提供
+ * キャッシュ機能統合版
  */
 
 const axios = require('axios');
 const cheerio = require('cheerio');
 const crypto = require('crypto');
+const URLCacheService = require('./urlCacheService');
 
 class URLMetadataService {
   constructor() {
     this.timeout = 10000; // 10秒タイムアウト
     this.maxContentLength = 5 * 1024 * 1024; // 5MB制限
     this.userAgent = 'Mozilla/5.0 (compatible; AWS-Community-Bot/1.0)';
+    
+    // キャッシュサービスを初期化
+    this.cacheService = new URLCacheService();
   }
 
   /**
-   * URLからOpen Graphメタデータを取得
+   * URLからOpen Graphメタデータを取得（キャッシュ対応）
    * @param {string} url - 取得対象のURL
+   * @param {Object} options - オプション設定
    * @returns {Promise<Object>} メタデータオブジェクト
    */
-  async extractMetadata(url) {
+  async extractMetadata(url, options = {}) {
     try {
       // URL形式の検証
       if (!this.isValidUrl(url)) {
         throw new Error('Invalid URL format');
       }
+
+      // キャッシュから取得を試行（強制更新でない場合）
+      if (!options.forceRefresh) {
+        const cachedMetadata = await this.cacheService.getCachedMetadata(url);
+        if (cachedMetadata) {
+          console.log(`キャッシュからメタデータを取得: ${url}`);
+          return cachedMetadata;
+        }
+      }
+
+      console.log(`新規メタデータ取得開始: ${url}`);
 
       // HTTPリクエストでHTMLを取得
       const response = await this.fetchHtml(url);
@@ -33,7 +50,13 @@ class URLMetadataService {
       const metadata = this.parseMetadata(response.data, url);
       
       // メタデータの後処理
-      return this.processMetadata(metadata, url);
+      const processedMetadata = this.processMetadata(metadata, url);
+      
+      // キャッシュに保存（バックグラウンドで実行）
+      this.cacheService.cacheMetadata(url, processedMetadata, options)
+        .catch(error => console.warn('キャッシュ保存失敗:', error));
+      
+      return processedMetadata;
       
     } catch (error) {
       console.error(`URLメタデータ取得エラー: ${url}`, error);
@@ -367,18 +390,62 @@ class URLMetadataService {
   }
 
   /**
-   * 複数URLのメタデータを並行取得
+   * 複数URLのメタデータを並行取得（キャッシュ対応）
    * @param {string[]} urls - URL配列
+   * @param {Object} options - オプション設定
    * @returns {Promise<Object[]>} メタデータ配列
    */
-  async extractMultipleMetadata(urls) {
-    const promises = urls.map(url => this.extractMetadata(url));
-    return await Promise.allSettled(promises).then(results =>
-      results.map((result, index) => ({
-        url: urls[index],
-        metadata: result.status === 'fulfilled' ? result.value : this.createFallbackMetadata(urls[index], result.reason?.message || 'Unknown error')
-      }))
-    );
+  async extractMultipleMetadata(urls, options = {}) {
+    // まずキャッシュから一括取得
+    const cachedResults = await this.cacheService.getBulkCachedMetadata(urls);
+    
+    // キャッシュにないURLのみ新規取得
+    const uncachedUrls = urls.filter(url => !cachedResults[url] || options.forceRefresh);
+    
+    const promises = uncachedUrls.map(url => this.extractMetadata(url, options));
+    const newResults = await Promise.allSettled(promises);
+    
+    // 結果をマージ
+    return urls.map(url => {
+      const cached = cachedResults[url];
+      if (cached && !options.forceRefresh) {
+        return { url, metadata: cached };
+      }
+      
+      const index = uncachedUrls.indexOf(url);
+      const result = newResults[index];
+      return {
+        url,
+        metadata: result.status === 'fulfilled' 
+          ? result.value 
+          : this.createFallbackMetadata(url, result.reason?.message || 'Unknown error')
+      };
+    });
+  }
+
+  /**
+   * キャッシュを無効化
+   * @param {string} url - 無効化するURL
+   * @returns {Promise<boolean>} 無効化成功可否
+   */
+  async invalidateCache(url) {
+    return await this.cacheService.invalidateCache(url);
+  }
+
+  /**
+   * キャッシュ統計情報を取得
+   * @returns {Promise<Object>} 統計情報
+   */
+  async getCacheStatistics() {
+    return await this.cacheService.getCacheStatistics();
+  }
+
+  /**
+   * 期限切れキャッシュをクリーンアップ
+   * @returns {Promise<number>} 削除されたアイテム数
+   */
+  async cleanupExpiredCache() {
+    return await this.cacheService.cleanupExpiredCache();
   }
 }
 
