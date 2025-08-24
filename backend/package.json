@@ -10,7 +10,10 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix"
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "docker:build": "docker build -t multilingual-community-backend .",
+    "docker:run": "docker run -p 3001:3001 multilingual-community-backend",
+    "setup:db": "ts-node scripts/setup-database.ts"
   },
   "dependencies": {
     "express": "^4.18.0",

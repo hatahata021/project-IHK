@@ -59,11 +59,18 @@ npm install
 #### Docker使用（推奨）
 
 ```bash
-# 開発環境の自動セットアップ
-./scripts/dev-setup.sh
+# 開発環境の自動セットアップ・起動
+./scripts/docker-dev.sh setup
 
 # または手動でDocker Composeを使用
 docker-compose up -d
+
+# 利用可能なサービス
+# - フロントエンド: http://localhost:3000
+# - バックエンドAPI: http://localhost:3001
+# - DynamoDB Local: http://localhost:8000
+# - DynamoDB Admin: http://localhost:8001
+# - Redis Commander: http://localhost:8002
 ```
 
 #### ローカル環境での起動
@@ -81,21 +88,23 @@ cd frontend
 npm run dev
 ```
 
-### 5. 開発用ツール
+### 5. Docker開発環境管理
 
 ```bash
-# 開発環境管理
-./scripts/dev-utils.sh start    # 開発環境起動
-./scripts/dev-utils.sh stop     # 開発環境停止
-./scripts/dev-utils.sh status   # 状況確認
-./scripts/dev-utils.sh logs     # ログ確認
+# Docker環境管理コマンド
+./scripts/docker-dev.sh start     # Docker環境を起動
+./scripts/docker-dev.sh stop      # Docker環境を停止
+./scripts/docker-dev.sh restart   # Docker環境を再起動
+./scripts/docker-dev.sh build     # Dockerイメージを再ビルド
+./scripts/docker-dev.sh logs      # ログを表示
+./scripts/docker-dev.sh status    # コンテナの状態を表示
+./scripts/docker-dev.sh shell     # バックエンドコンテナにシェル接続
+./scripts/docker-dev.sh clean     # 全てのコンテナとボリュームを削除
+./scripts/docker-dev.sh setup     # 初回セットアップ
 
-# 利用可能なサービス
-# - フロントエンド: http://localhost:3000
-# - バックエンドAPI: http://localhost:3001
-# - DynamoDB Local: http://localhost:8000
-# - DynamoDB Admin: http://localhost:8001
-# - Redis Commander: http://localhost:8081
+# 個別サービスのログ確認
+./scripts/docker-dev.sh logs backend   # バックエンドのログ
+./scripts/docker-dev.sh logs frontend  # フロントエンドのログ
 ```
 
 ## 📋 開発ルール

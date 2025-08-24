@@ -1,105 +1,83 @@
 version: '3.8'
 
 services:
-  # フロントエンド（React/Next.js）
-  frontend:
-    build:
-      context: ./frontend
-      target: development
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://localhost:3001
-    depends_on:
-      - backend
-    networks:
-      - app-network
-
-  # バックエンド（Node.js/Express）
-  backend:
-    build:
-      context: ./backend
-      target: development
-    ports:
-      - "3001:3001"
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
-      - PORT=3001
-      - FRONTEND_URL=http://localhost:3000
-      - DYNAMODB_ENDPOINT=http://dynamodb-local:8000
-      - REDIS_URL=redis://redis:6379
-    depends_on:
-      - dynamodb-local
-      - redis
-    networks:
-      - app-network
-
-  # DynamoDB Local（開発用）
+  # DynamoDB Local
   dynamodb-local:
     image: amazon/dynamodb-local:latest
-    container_name: dynamodb-local
+    container_name: multilingual-community-dynamodb
     ports:
       - "8000:8000"
     command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "./data"]
     volumes:
       - dynamodb-data:/home/dynamodblocal/data
-    working_dir: /home/dynamodblocal
     networks:
-      - app-network
+      - multilingual-community-network
 
-  # Redis（キャッシュ用）
+  # Redis
   redis:
     image: redis:7-alpine
-    container_name: redis
+    container_name: multilingual-community-redis
     ports:
       - "6379:6379"
     volumes:
       - redis-data:/data
-    command: redis-server --appendonly yes
     networks:
-      - app-network
+      - multilingual-community-network
+    command: redis-server --appendonly yes
 
-  # DynamoDB Admin（開発用GUI）
-  dynamodb-admin:
-    image: aaronshaf/dynamodb-admin:latest
-    container_name: dynamodb-admin
+  # バックエンドAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: multilingual-community-backend
     ports:
-      - "8001:8001"
+      - "3001:3001"
     environment:
-      - DYNAMO_ENDPOINT=http://dynamodb-local:8000
+      - NODE_ENV=development
+      - PORT=3001
+      - DYNAMODB_ENDPOINT=http://dynamodb-local:8000
+      - REDIS_URL=redis://redis:6379
+      - AWS_REGION=ap-northeast-1
+      - AWS_ACCESS_KEY_ID=dummy
+      - AWS_SECRET_ACCESS_KEY=dummy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
     depends_on:
       - dynamodb-local
-    networks:
-      - app-network
-
-  # Redis Commander（開発用GUI）
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    container_name: redis-commander
-    ports:
-      - "8081:8081"
-    environment:
-      - REDIS_HOSTS=local:redis:6379
-    depends_on:
       - redis
     networks:
-      - app-network
+      - multilingual-community-network
+    command: npm run dev
 
-# ボリューム定義
+  # フロントエンド
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: multilingual-community-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    networks:
+      - multilingual-community-network
+    command: npm run dev
+
 volumes:
   dynamodb-data:
     driver: local
   redis-data:
     driver: local
 
-# ネットワーク定義
 networks:
-  app-network:
+  multilingual-community-network:
     driver: bridge
