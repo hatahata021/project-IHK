@@ -110,7 +110,25 @@ aws cloudformation deploy \
 
 echo "✅ S3スタックデプロイ完了"
 
-# 4. Cognitoスタックのデプロイ
+# 4. ECRスタックのデプロイ
+echo "📦 ECRスタックをデプロイ中..."
+ECR_STACK_NAME="$PROJECT_NAME-$ENVIRONMENT-ecr"
+
+aws cloudformation deploy \
+    --template-file "$TEMPLATE_DIR/ecr.yml" \
+    --stack-name "$ECR_STACK_NAME" \
+    --parameter-overrides \
+        Environment="$ENVIRONMENT" \
+        ProjectName="$PROJECT_NAME" \
+    --region "$AWS_REGION" \
+    --tags \
+        Environment="$ENVIRONMENT" \
+        Project="$PROJECT_NAME" \
+        ManagedBy="CloudFormation"
+
+echo "✅ ECRスタックデプロイ完了"
+
+# 5. Cognitoスタックのデプロイ
 echo "🔐 Cognitoスタックをデプロイ中..."
 COGNITO_STACK_NAME="$PROJECT_NAME-$ENVIRONMENT-cognito"
 
@@ -137,7 +155,7 @@ aws cloudformation deploy \
 
 echo "✅ Cognitoスタックデプロイ完了"
 
-# 5. ECSスタックのデプロイ（本番環境のみ）
+# 6. ECSスタックのデプロイ（本番環境のみ）
 if [ "$ENVIRONMENT" = "prod" ] || [ "$ENVIRONMENT" = "staging" ]; then
     echo "🐳 ECSスタックをデプロイ中..."
     ECS_STACK_NAME="$PROJECT_NAME-$ENVIRONMENT-ecs"
@@ -170,6 +188,7 @@ echo "📋 デプロイされたリソース:"
 echo "   - VPC: $VPC_ID"
 echo "   - DynamoDBテーブル: 6個"
 echo "   - S3バケット: 2個"
+echo "   - ECRリポジトリ: 2個"
 echo "   - Cognito User Pool: 1個"
 if [ "$ENVIRONMENT" = "prod" ] || [ "$ENVIRONMENT" = "staging" ]; then
     echo "   - ECS Cluster: 1個"
