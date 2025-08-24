@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import translationRoutes from './routes/translation';
 import translationCacheRoutes from './routes/translationCache';
 import logRoutes from './routes/logs';
+import monitoringRoutes from './routes/monitoring';
 
 // ミドルウェアのインポート
 import { validationMiddleware } from './middleware/validation';
@@ -16,9 +17,17 @@ import {
   performanceLogMiddleware, 
   securityLogMiddleware 
 } from './middleware/logging';
+import { 
+  monitoringMiddleware, 
+  resourceMonitoringMiddleware, 
+  healthMetricsMiddleware,
+  CustomMetricsCollector,
+  MonitoringReporter
+} from './middleware/monitoring';
 
-// ログサービスのインポート
+// サービスのインポート
 import { logger } from './services/loggerService';
+import { monitoringService } from './services/monitoringService';
 
 // 環境変数の読み込み
 dotenv.config();
@@ -44,6 +53,12 @@ app.use(accessLogMiddleware);
 app.use(performanceLogMiddleware(1000)); // 1秒以上のリクエストをログ
 app.use(securityLogMiddleware);
 
+// 監視ミドルウェア
+app.use(monitoringMiddleware);
+app.use(resourceMonitoringMiddleware(2000)); // 2秒以上のリクエストを監視
+app.use(healthMetricsMiddleware);
+app.use(CustomMetricsCollector.endpointUsageMiddleware);
+
 // 共通バリデーションミドルウェア
 app.use(validationMiddleware.validateRequestSize);
 app.use(validationMiddleware.validateContentType);
@@ -64,6 +79,7 @@ app.get('/health', (req, res) => {
 app.use('/api/translate', translationRoutes);
 app.use('/api/translation-cache', translationCacheRoutes);
 app.use('/api/logs', logRoutes);
+app.use('/api/monitoring', monitoringRoutes);
 
 // 基本的なルート
 app.get('/', (req, res) => {
@@ -77,6 +93,7 @@ app.get('/', (req, res) => {
       translate: '/api/translate',
       translationCache: '/api/translation-cache',
       logs: '/api/logs',
+      monitoring: '/api/monitoring',
       upload: '/api/upload'
     }
   });
@@ -103,20 +120,28 @@ app.listen(PORT, () => {
     version: '0.1.0'
   });
   
+  // 定期監視レポートを開始
+  MonitoringReporter.startPeriodicReporting(5); // 5分間隔
+  
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📍 Health check: http://localhost:${PORT}/health`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📊 Monitoring: http://localhost:${PORT}/api/monitoring/health`);
 });
 
 // グレースフルシャットダウン
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received, shutting down gracefully');
+  MonitoringReporter.stopPeriodicReporting();
+  monitoringService.stop();
   logger.destroy();
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
   logger.info('SIGINT received, shutting down gracefully');
+  MonitoringReporter.stopPeriodicReporting();
+  monitoringService.stop();
   logger.destroy();
   process.exit(0);
 });
