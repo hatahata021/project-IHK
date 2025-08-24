@@ -178,9 +178,37 @@ npm run test:coverage
 
 ### 秘匿情報管理
 
-- AWS Secrets Manager: 機密情報（パスワード、APIキー等）
-- AWS Parameter Store: 非機密設定値
-- 環境変数: ローカル開発用設定
+- **AWS Secrets Manager**: 機密情報（パスワード、APIキー等）
+- **AWS Parameter Store**: 非機密設定値
+- **環境変数**: ローカル開発用設定
+
+#### Secrets Manager・Parameter Store管理
+
+```bash
+# スタックのデプロイ
+./scripts/secrets-manager.sh deploy dev
+
+# シークレット一覧表示
+./scripts/secrets-manager.sh list-secrets dev
+
+# パラメータ一覧表示
+./scripts/secrets-manager.sh list-parameters dev
+
+# シークレット取得
+./scripts/secrets-manager.sh get-secret dev jwt-secret
+
+# パラメータ取得
+./scripts/secrets-manager.sh get-parameter dev app/version
+
+# シークレット設定
+./scripts/secrets-manager.sh set-secret dev jwt-secret '{"secret":"new-secret-value"}'
+
+# パラメータ設定
+./scripts/secrets-manager.sh set-parameter dev app/version "1.1.0"
+
+# CloudFormationテンプレート検証
+./scripts/secrets-manager.sh validate-templates
+```
 
 ## 👥 チーム構成
 

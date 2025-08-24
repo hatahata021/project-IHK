@@ -42,6 +42,7 @@ case "$1" in
             STACKS=(
                 "$PROJECT_NAME-$ENVIRONMENT-ecs"
                 "$PROJECT_NAME-$ENVIRONMENT-cognito"
+                "$PROJECT_NAME-$ENVIRONMENT-secrets"
                 "$PROJECT_NAME-$ENVIRONMENT-ecr"
                 "$PROJECT_NAME-$ENVIRONMENT-s3"
                 "$PROJECT_NAME-$ENVIRONMENT-dynamodb"
@@ -69,6 +70,7 @@ case "$1" in
             "$PROJECT_NAME-$ENVIRONMENT-dynamodb"
             "$PROJECT_NAME-$ENVIRONMENT-s3"
             "$PROJECT_NAME-$ENVIRONMENT-ecr"
+            "$PROJECT_NAME-$ENVIRONMENT-secrets"
             "$PROJECT_NAME-$ENVIRONMENT-cognito"
             "$PROJECT_NAME-$ENVIRONMENT-ecs"
         )
@@ -107,6 +109,7 @@ case "$1" in
             "infrastructure/cloudformation/dynamodb.yml"
             "infrastructure/cloudformation/s3.yml"
             "infrastructure/cloudformation/ecr.yml"
+            "infrastructure/cloudformation/secrets.yml"
             "infrastructure/cloudformation/cognito.yml"
             "infrastructure/cloudformation/ecs.yml"
         )
