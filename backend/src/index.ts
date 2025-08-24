@@ -3,6 +3,13 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 
+// ルートのインポート
+import translationRoutes from './routes/translation';
+import translationCacheRoutes from './routes/translationCache';
+
+// ミドルウェアのインポート
+import { validationMiddleware } from './middleware/validation';
+
 // 環境変数の読み込み
 dotenv.config();
 
@@ -22,6 +29,10 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// 共通バリデーションミドルウェア
+app.use(validationMiddleware.validateRequestSize);
+app.use(validationMiddleware.validateContentType);
+
 // ヘルスチェックエンドポイント
 app.get('/health', (req, res) => {
   res.status(200).json({
@@ -31,6 +42,10 @@ app.get('/health', (req, res) => {
     version: '0.1.0'
   });
 });
+
+// APIルートの設定
+app.use('/api/translate', translationRoutes);
+app.use('/api/translation-cache', translationCacheRoutes);
 
 // 基本的なルート
 app.get('/', (req, res) => {
@@ -42,6 +57,7 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       forum: '/api/forum',
       translate: '/api/translate',
+      translationCache: '/api/translation-cache',
       upload: '/api/upload'
     }
   });
