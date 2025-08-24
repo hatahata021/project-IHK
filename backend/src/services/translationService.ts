@@ -1,6 +1,7 @@
-import { TranslateClient, TranslateTextCommand, DetectDominantLanguageCommand } from '@aws-sdk/client-translate';
-import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
+import { TranslateClient, TranslateTextCommand } from '@aws-sdk/client-translate';
+import { SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
+import { translationCacheService } from './translationCacheService';
 
 /**
  * 翻訳サービスのエラークラス
@@ -34,6 +35,8 @@ export interface TranslationResult {
   sourceLanguage: string;
   targetLanguage: string;
   confidence?: number; // 言語検出の信頼度
+  fromCache?: boolean; // キャッシュから取得したか
+  processingTime?: number; // 処理時間（ミリ秒）
 }
 
 /**
@@ -124,7 +127,7 @@ export class TranslationService {
   }
 
   /**
-   * テキストの言語を検出
+   * テキストの言語を検出（簡易版）
    */
   async detectLanguage(text: string): Promise<LanguageDetectionResult> {
     await this.initializeConfig();
@@ -144,30 +147,22 @@ export class TranslationService {
     }
 
     try {
-      const command = new DetectDominantLanguageCommand({
-        Text: text
-      });
-
-      const response = await this.translateClient.send(command);
+      // 簡易的な言語検出（実際の実装ではAWS Comprehendを使用することを推奨）
+      const japanesePattern = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/;
+      const koreanPattern = /[\uAC00-\uD7AF]/;
+      const chinesePattern = /[\u4E00-\u9FFF]/;
       
-      if (!response.Languages || response.Languages.length === 0) {
-        throw new TranslationError(
-          '言語を検出できませんでした',
-          'LANGUAGE_DETECTION_FAILED'
-        );
+      if (japanesePattern.test(text)) {
+        return { languageCode: 'ja', score: 0.8 };
+      } else if (koreanPattern.test(text)) {
+        return { languageCode: 'ko', score: 0.8 };
+      } else if (chinesePattern.test(text)) {
+        return { languageCode: 'zh', score: 0.7 };
+      } else {
+        // デフォルトは英語と仮定
+        return { languageCode: 'en', score: 0.6 };
       }
-
-      const dominantLanguage = response.Languages[0];
-      
-      return {
-        languageCode: dominantLanguage.LanguageCode || 'unknown',
-        score: dominantLanguage.Score || 0
-      };
     } catch (error) {
-      if (error instanceof TranslationError) {
-        throw error;
-      }
-      
       console.error('言語検出エラー:', error);
       throw new TranslationError(
         '言語検出中にエラーが発生しました',
@@ -178,9 +173,10 @@ export class TranslationService {
   }
 
   /**
-   * テキストを翻訳
+   * テキストを翻訳（キャッシュ機能付き）
    */
   async translateText(request: TranslationRequest): Promise<TranslationResult> {
+    const startTime = Date.now();
     await this.initializeConfig();
 
     // 入力値検証
@@ -227,15 +223,41 @@ export class TranslationService {
 
     // 同じ言語の場合は翻訳をスキップ
     if (sourceLanguage === request.targetLanguage) {
+      const processingTime = Date.now() - startTime;
       return {
         originalText: request.text,
         translatedText: request.text,
         sourceLanguage: sourceLanguage,
         targetLanguage: request.targetLanguage,
-        confidence
+        confidence,
+        fromCache: false,
+        processingTime
       };
     }
 
+    // キャッシュから翻訳結果を取得を試行
+    const cacheResult = await translationCacheService.get(
+      request.text,
+      sourceLanguage,
+      request.targetLanguage
+    );
+
+    if (cacheResult.success && cacheResult.fromCache && cacheResult.entry) {
+      const processingTime = Date.now() - startTime;
+      console.log(`キャッシュから翻訳結果を取得: ${processingTime}ms`);
+      
+      return {
+        originalText: cacheResult.entry.originalText,
+        translatedText: cacheResult.entry.translatedText,
+        sourceLanguage: cacheResult.entry.sourceLanguage,
+        targetLanguage: cacheResult.entry.targetLanguage,
+        confidence: cacheResult.entry.confidence,
+        fromCache: true,
+        processingTime
+      };
+    }
+
+    // キャッシュにない場合はAmazon Translateで翻訳
     try {
       const command = new TranslateTextCommand({
         Text: request.text,
@@ -252,12 +274,30 @@ export class TranslationService {
         );
       }
 
+      const translatedText = response.TranslatedText;
+      const finalSourceLanguage = response.SourceLanguageCode || sourceLanguage;
+      const finalTargetLanguage = response.TargetLanguageCode || request.targetLanguage;
+      const processingTime = Date.now() - startTime;
+
+      // 翻訳結果をキャッシュに保存
+      await translationCacheService.put(
+        request.text,
+        translatedText,
+        finalSourceLanguage,
+        finalTargetLanguage,
+        confidence
+      );
+
+      console.log(`Amazon Translateで翻訳完了: ${processingTime}ms`);
+
       return {
         originalText: request.text,
-        translatedText: response.TranslatedText,
-        sourceLanguage: response.SourceLanguageCode || sourceLanguage,
-        targetLanguage: response.TargetLanguageCode || request.targetLanguage,
-        confidence
+        translatedText,
+        sourceLanguage: finalSourceLanguage,
+        targetLanguage: finalTargetLanguage,
+        confidence,
+        fromCache: false,
+        processingTime
       };
     } catch (error) {
       if (error instanceof TranslationError) {
