@@ -3,7 +3,7 @@
  * 非機密設定値の取得とキャッシュ機能を提供
  */
 
-import { SSMClient, GetParameterCommand, GetParametersCommand } from '@aws-sdk/client-ssm';
+import { SSMClient, GetParameterCommand, GetParametersCommand, DescribeParametersCommand } from '@aws-sdk/client-ssm';
 
 // パラメータ型定義
 export interface AppConfig {
@@ -299,6 +299,81 @@ export class ParameterService {
    */
   getParameterPrefix(): string {
     return this.parameterPrefix;
+  }
+
+  /**
+   * 利用可能なパラメータ一覧を取得
+   */
+  async listAvailableParameters(): Promise<string[]> {
+    try {
+      const command = new DescribeParametersCommand({
+        ParameterFilters: [
+          {
+            Key: 'Name',
+            Option: 'BeginsWith',
+            Values: [this.parameterPrefix]
+          }
+        ]
+      });
+      
+      const response = await this.client.send(command);
+      
+      return response.Parameters?.map(param => {
+        if (param.Name) {
+          // プレフィックスを除去してパラメータパスのみを返す
+          return param.Name.replace(this.parameterPrefix, '');
+        }
+        return '';
+      }).filter(name => name !== '') || [];
+    } catch (error) {
+      throw new ParameterStoreError(
+        `Failed to list parameters: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
+   * Parameter Storeの接続テスト
+   */
+  async healthCheck(): Promise<{ status: 'healthy' | 'unhealthy'; message: string; timestamp: number }> {
+    try {
+      // 軽量なリスト操作でヘルスチェック
+      await this.client.send(new DescribeParametersCommand({ MaxResults: 1 }));
+      
+      return {
+        status: 'healthy',
+        message: 'Parameter Store connection is healthy',
+        timestamp: Date.now()
+      };
+    } catch (error) {
+      return {
+        status: 'unhealthy',
+        message: `Parameter Store connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        timestamp: Date.now()
+      };
+    }
+  }
+
+  /**
+   * 環境情報を取得
+   */
+  getEnvironmentInfo(): { parameterPrefix: string; region: string } {
+    return {
+      parameterPrefix: this.parameterPrefix,
+      region: process.env.AWS_REGION || 'ap-northeast-1'
+    };
+  }
+
+  /**
+   * パラメータの存在確認
+   */
+  async parameterExists(parameterPath: string): Promise<boolean> {
+    try {
+      await this.getParameter(parameterPath);
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 }
 

@@ -8,6 +8,7 @@ import translationRoutes from './routes/translation';
 import translationCacheRoutes from './routes/translationCache';
 import logRoutes from './routes/logs';
 import monitoringRoutes from './routes/monitoring';
+import healthRoutes from './routes/health';
 
 // ミドルウェアのインポート
 import { validationMiddleware } from './middleware/validation';
@@ -80,6 +81,7 @@ app.use('/api/translate', translationRoutes);
 app.use('/api/translation-cache', translationCacheRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/monitoring', monitoringRoutes);
+app.use('/health', healthRoutes);
 
 // 基本的なルート
 app.get('/', (req, res) => {
@@ -88,6 +90,8 @@ app.get('/', (req, res) => {
     version: '0.1.0',
     endpoints: {
       health: '/health',
+      healthDetailed: '/health/detailed',
+      healthConfig: '/health/config',
       auth: '/api/auth',
       forum: '/api/forum',
       translate: '/api/translate',

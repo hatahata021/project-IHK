@@ -354,6 +354,107 @@ export class ConfigService {
       );
     }
   }
+
+  /**
+   * 統合ヘルスチェック
+   */
+  async healthCheck(): Promise<{
+    overall: 'healthy' | 'unhealthy';
+    services: {
+      secretsManager: { status: 'healthy' | 'unhealthy'; message: string };
+      parameterStore: { status: 'healthy' | 'unhealthy'; message: string };
+    };
+    timestamp: number;
+  }> {
+    const [secretsHealth, parameterHealth] = await Promise.all([
+      this.secretsService.healthCheck(),
+      this.parameterService.healthCheck()
+    ]);
+
+    const overall = secretsHealth.status === 'healthy' && parameterHealth.status === 'healthy' 
+      ? 'healthy' 
+      : 'unhealthy';
+
+    return {
+      overall,
+      services: {
+        secretsManager: {
+          status: secretsHealth.status,
+          message: secretsHealth.message
+        },
+        parameterStore: {
+          status: parameterHealth.status,
+          message: parameterHealth.message
+        }
+      },
+      timestamp: Date.now()
+    };
+  }
+
+  /**
+   * 環境別設定の初期化チェック
+   */
+  async initializeEnvironment(): Promise<{
+    initialized: boolean;
+    missingSecrets: string[];
+    missingParameters: string[];
+    errors: string[];
+  }> {
+    const errors: string[] = [];
+    const missingSecrets: string[] = [];
+    const missingParameters: string[] = [];
+
+    // 必須シークレットの確認
+    const requiredSecrets = ['jwt-keys', 'email-config'];
+    for (const secretType of requiredSecrets) {
+      try {
+        const exists = await this.secretsService.secretExists(secretType);
+        if (!exists) {
+          missingSecrets.push(secretType);
+        }
+      } catch (error) {
+        errors.push(`Failed to check secret ${secretType}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+
+    // 必須パラメータの確認
+    const requiredParameters = ['/app/region', '/app/log-level', '/dynamodb/table-prefix'];
+    for (const paramPath of requiredParameters) {
+      try {
+        const exists = await this.parameterService.parameterExists(paramPath);
+        if (!exists) {
+          missingParameters.push(paramPath);
+        }
+      } catch (error) {
+        errors.push(`Failed to check parameter ${paramPath}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+
+    return {
+      initialized: missingSecrets.length === 0 && missingParameters.length === 0 && errors.length === 0,
+      missingSecrets,
+      missingParameters,
+      errors
+    };
+  }
+
+  /**
+   * 設定サービスの統計情報を取得
+   */
+  getServiceStats(): {
+    secrets: { size: number; entries: string[] };
+    parameters: { size: number; entries: string[] };
+    config: { cached: boolean; cacheExpiry: number };
+  } {
+    return {
+      secrets: this.secretsService.getCacheStats(),
+      parameters: this.parameterService.getCacheStats(),
+      config: {
+        cached: !!this.configCache,
+        cacheExpiry: this.cacheExpiry
+      }
+    };
+  }
 }
 
 // シングルトンインスタンス
