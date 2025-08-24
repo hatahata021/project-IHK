@@ -3,7 +3,7 @@
  * シークレット情報の取得とキャッシュ機能を提供
  */
 
-import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
+import { SecretsManagerClient, GetSecretValueCommand, ListSecretsCommand } from '@aws-sdk/client-secrets-manager';
 
 // シークレット型定義
 export interface DatabaseSecret {
@@ -205,6 +205,86 @@ export class SecretsService {
       size: this.cache.size,
       entries: Array.from(this.cache.keys())
     };
+  }
+
+  /**
+   * 利用可能なシークレット一覧を取得
+   */
+  async listAvailableSecrets(): Promise<string[]> {
+    try {
+      const command = new ListSecretsCommand({
+        Filters: [
+          {
+            Key: 'name',
+            Values: [`${this.projectName}/${this.environment}/`]
+          }
+        ]
+      });
+      
+      const response = await this.client.send(command);
+      
+      return response.SecretList?.map(secret => {
+        if (secret.Name) {
+          // プレフィックスを除去してシークレットタイプのみを返す
+          return secret.Name.replace(`${this.projectName}/${this.environment}/`, '');
+        }
+        return '';
+      }).filter(name => name !== '') || [];
+    } catch (error) {
+      throw new SecretsManagerError(
+        `Failed to list secrets: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
+   * Secrets Managerの接続テスト
+   */
+  async healthCheck(): Promise<{ status: 'healthy' | 'unhealthy'; message: string; timestamp: number }> {
+    try {
+      // 軽量なリスト操作でヘルスチェック
+      await this.client.send(new ListSecretsCommand({ MaxResults: 1 }));
+      
+      return {
+        status: 'healthy',
+        message: 'Secrets Manager connection is healthy',
+        timestamp: Date.now()
+      };
+    } catch (error) {
+      return {
+        status: 'unhealthy',
+        message: `Secrets Manager connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        timestamp: Date.now()
+      };
+    }
+  }
+
+  /**
+   * 環境情報を取得
+   */
+  getEnvironmentInfo(): { projectName: string; environment: string; region: string } {
+    return {
+      projectName: this.projectName,
+      environment: this.environment,
+      region: process.env.AWS_REGION || 'ap-northeast-1'
+    };
+  }
+
+  /**
+   * シークレットの存在確認
+   */
+  async secretExists(secretType: string): Promise<boolean> {
+    try {
+      const secretName = this.getSecretName(secretType);
+      const command = new GetSecretValueCommand({
+        SecretId: secretName,
+      });
+      
+      await this.client.send(command);
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 }
 

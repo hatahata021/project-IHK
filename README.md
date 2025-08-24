@@ -210,6 +210,45 @@ npm run test:coverage
 ./scripts/secrets-manager.sh validate-templates
 ```
 
+#### シークレット管理サービス使用方法
+
+```typescript
+// 基本的な使用方法
+import { configService } from './services/configService';
+
+// 統合設定の取得
+const config = await configService.getConfig();
+
+// 特定の設定セクションの取得
+const authConfig = await configService.getAuthConfig();
+const dbConfig = await configService.getDatabaseConfig();
+
+// ヘルスチェック
+const health = await configService.healthCheck();
+
+// 設定の検証
+const validation = await configService.validateConfig();
+```
+
+#### ヘルスチェックエンドポイント
+
+```bash
+# 基本ヘルスチェック
+curl http://localhost:3001/health
+
+# 詳細ヘルスチェック
+curl http://localhost:3001/health/detailed
+
+# 設定概要取得
+curl http://localhost:3001/health/config
+
+# キャッシュクリア
+curl -X POST http://localhost:3001/health/cache/clear
+
+# 設定再読み込み
+curl -X POST http://localhost:3001/health/config/reload
+```
+
 ## 👥 チーム構成
 
 ### メンバー1: インフラ・バックエンド基盤担当

@@ -36,7 +36,7 @@
   - SNSログイン（X、Instagram、LinkedIn）とメールアドレス認証に対応する
   - _要件: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [ ] 2.1 シークレット管理サービス実装
+- [x] 2.1 シークレット管理サービス実装
   - AWS Secrets Manager連携のSecretsServiceクラスを実装
   - AWS Systems Manager Parameter Store連携のParameterServiceクラスを実装
   - シークレット取得のキャッシュ機能とエラーハンドリングを実装
